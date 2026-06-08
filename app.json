@@ -38,11 +38,19 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d3e2445f-b5bd-432e-8a0a-61770cabed6f"
+      }
+    },
+    "owner": "mauricio.montiel.ac"
   }
 }
