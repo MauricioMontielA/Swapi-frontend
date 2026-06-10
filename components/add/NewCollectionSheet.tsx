@@ -4,8 +4,8 @@ import { Button, Input, Text, XStack, YStack } from 'tamagui'
 
 export type RecommendedCollection = {
     id: number
-    title: string
-    subtitle: string
+    name: string
+    description: string
     imageUrl: string
 }
 
@@ -139,11 +139,11 @@ function RecommendedCollectionRow({
 
             <YStack flex={1}>
                 <Text fontSize={14} fontWeight="600" color="#0b1c30">
-                    {collection.title}
+                    {collection.name}
                 </Text>
 
                 <Text fontSize={12} color="#565e74">
-                    {collection.subtitle}
+                    {collection.description}
                 </Text>
             </YStack>
 

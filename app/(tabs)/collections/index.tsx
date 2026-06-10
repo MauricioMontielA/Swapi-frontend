@@ -1,71 +1,66 @@
+import { getCollections } from '@/api/collectionService'
 import CollectionGridCard from '@/components/collections/CollectionGridCard'
 import CollectionsHeader from '@/components/collections/CollectionsHeader'
 import ExploreCatalogCard from '@/components/collections/ExploreCatalogCard'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
-import { YStack } from 'tamagui'
+import { Text, YStack } from 'tamagui'
 
-const collections = [
-  {
-    id: 1,
-    title: 'World Cup 2026',
-    type: 'Stickers',
-    progress: 68,
-    missing: 192,
-    repeated: 45,
-    imageUrl:
-      'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=800',
-  },
-  {
-    id: 2,
-    title: 'Pokémon TCG',
-    type: 'Cards',
-    progress: 42,
-    missing: 548,
-    repeated: 12,
-    imageUrl:
-      'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?q=80&w=800',
-  },
-  {
-    id: 3,
-    title: 'NBA Stickers',
-    type: 'Stickers',
-    progress: 91,
-    missing: 32,
-    repeated: 89,
-    imageUrl:
-      'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=800',
-  },
-]
+type Collection = {
+  id: number
+  name: string
+  type: string
+  progress: number
+  missing: number
+  repeated: number
+  imageUrl: string
+}
 
 export default function CollectionsScreen() {
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadCollections()
+  }, [])
+
+  const loadCollections = async () => {
+    try {
+      const data = await getCollections()
+      setCollections(data)
+    } catch (error) {
+      console.error('Error loading collections', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       style={{ flex: 1, backgroundColor: '#f8f9ff' }}
     >
       <YStack padding="$4" paddingBottom="$8" gap="$5">
-        <CollectionsHeader
-          onAdd={() => console.log('Add New Collection')}
-        />
+        <CollectionsHeader onAdd={() => console.log('Add New Collection')} />
+
+        {loading && <Text>Loading...</Text>}
 
         <YStack gap="$4">
           {collections.map(collection => (
             <CollectionGridCard
               key={collection.id}
-              title={collection.title}
+              title={collection.name}
               type={collection.type}
               imageUrl={collection.imageUrl}
               progress={collection.progress}
               missing={collection.missing}
               repeated={collection.repeated}
-              onPress={() => console.log(collection.title)}
+              onPress={() => console.log(collection.name)}
             />
           ))}
         </YStack>
 
-        <ExploreCatalogCard
-          onPress={() => console.log('Explore Catalog')}
-        />
+        <ExploreCatalogCard onPress={() => console.log('Explore Catalog')} />
       </YStack>
     </ScrollView>
   )

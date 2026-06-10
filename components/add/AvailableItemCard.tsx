@@ -4,7 +4,7 @@ import { Card, Text, XStack, YStack } from 'tamagui'
 
 export type AvailableItem = {
   id: number
-  number: number
+  number: string
   name: string
   imageUrl?: string
 }

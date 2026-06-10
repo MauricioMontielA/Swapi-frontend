@@ -4,13 +4,15 @@ import { Button, Card, Text, XStack, YStack } from 'tamagui'
 
 export type SelectCollection = {
   id: number
-  title: string
+  name: string
   description: string
   imageUrl?: string
   progress: number
   missingText?: string
   badge?: string
 }
+
+
 
 type Props = {
   collection: SelectCollection
@@ -65,7 +67,7 @@ export default function SelectCollectionCard({
 
         <YStack gap="$2">
           <Text fontSize={24} fontWeight="700" color="#0b1c30">
-            {collection.title}
+            {collection.name}
           </Text>
 
           <Text fontSize={14} color="#464555" lineHeight={21}>
