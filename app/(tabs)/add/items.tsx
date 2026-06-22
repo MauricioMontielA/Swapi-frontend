@@ -3,16 +3,27 @@ import { useEffect, useState } from 'react'
 import { FlatList } from 'react-native'
 import { YStack } from 'tamagui'
 
-import { getItemsAdd } from '@/api/collectionService'
+import { addItemsToCollection, getItemsAdd } from '@/api/collectionService'
 import AvailableItemsGrid from '@/components/add/AvailableItemsGrid'
 import BottomAddBar from '@/components/add/BottomAddBar'
 import CollectionHeader from '@/components/add/CollectionHeader'
+import { UserCollectibleMatchResponse } from './MatchesProposals'
 
 type Item = {
   id: number
   number: string
   name: string
   imageUrl: string
+}
+
+type ItemsPageResponse = {
+  content: Item[]
+  page: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
 }
 
 export default function AddScreen() {
@@ -30,16 +41,25 @@ export default function AddScreen() {
   const size = 30
 
   useEffect(() => {
+    setItems([])
+    setPage(0)
+    setIsLastPage(false)
+
     loadItems(0)
   }, [collectionId])
 
   const loadItems = async (pageToLoad: number) => {
-    if (loading || isLastPage) return
+    if (loading) return
+    if (isLastPage && pageToLoad !== 0) return
 
     try {
       setLoading(true)
 
-      const data = await getItemsAdd(Number(collectionId), pageToLoad, size)
+      const data: ItemsPageResponse = await getItemsAdd(
+        Number(collectionId),
+        pageToLoad,
+        size
+      )
 
       setItems(current =>
         pageToLoad === 0
@@ -47,8 +67,49 @@ export default function AddScreen() {
           : [...current, ...data.content]
       )
 
-      setPage(pageToLoad)
-      setIsLastPage(data.last)
+      setPage(data.page.number)
+      setIsLastPage(data.page.number + 1 >= data.page.totalPages)
+    } catch (error) {
+      console.error('Error loading items', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const goToProposedMatches = (data: UserCollectibleMatchResponse) => {
+    const matchInfo = data.matchInfo ?? []
+    const myItemsToOffer = data.myItemsToOffer ?? []
+
+    if (matchInfo.length > 0) {
+      router.push({
+        pathname: '/(tabs)/add/MatchesProposals',
+        params: {
+          matchResponse: JSON.stringify({
+            matchInfo,
+            myItemsToOffer,
+          }),
+        },
+      } as any)
+    } else {
+      router.push({
+        pathname: '/(tabs)/add/no-matches',
+      } as any)
+    }
+  }
+
+  const addItems = async () => {
+    if (loading) return
+    if (selectedIds.length < 1) return
+
+    try {
+      setLoading(true)
+
+      const data: UserCollectibleMatchResponse = await addItemsToCollection(
+        selectedIds,
+        Number(collectionId)
+      )
+
+      goToProposedMatches(data)
     } catch (error) {
       console.error('Error loading items', error)
     } finally {
@@ -109,7 +170,7 @@ export default function AddScreen() {
       <BottomAddBar
         selectedCount={selectedIds.length}
         onCancel={() => setSelectedIds([])}
-        onAdd={() => console.log('Add items', selectedIds, status)}
+        onAdd={addItems}
       />
     </YStack>
   )

@@ -26,11 +26,6 @@ type RecommendedCollection = {
     imageUrl: string
 }
 
-type CollectionResponseDto = {
-    collectionsInProgress: CollectionInProgress[],
-    recommendedCollections: RecommendedCollection[]
-}
-
 
 export default function SelectCollectionScreen() {
 
@@ -38,6 +33,9 @@ export default function SelectCollectionScreen() {
     const [recommendedCollections, setRecommendedCollections] = useState<RecommendedCollection[]>([])
 
     const [loading, setLoading] = useState(true)
+
+    const [search, setSearch] = useState('')
+    const [newCollectionOpen, setNewCollectionOpen] = useState(false)
 
     useEffect(() => {
         loadCollections()
@@ -56,8 +54,7 @@ export default function SelectCollectionScreen() {
             setLoading(false)
         }
     }
-    const [search, setSearch] = useState('')
-    const [newCollectionOpen, setNewCollectionOpen] = useState(false)
+    
 
     const filteredCollections = collectionsInProgress.filter(collection =>
         collection.name.toLowerCase().includes(search.trim().toLowerCase())
@@ -130,7 +127,7 @@ export default function SelectCollectionScreen() {
                                 opacity={0.7}
                                 textTransform="uppercase"
                             >
-                                Select a collection to begin adding items
+                                Select a collection to add items
                             </Text>
                         </YStack>
 

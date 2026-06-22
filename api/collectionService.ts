@@ -17,9 +17,25 @@ export const getItemsAdd = async (
   page: number,
   size: number,
 ) => {
-  const response = await api.get("/collectible-item", {
-    params: { collectionId, page, size },
+  const response = await api.get(`/collectible-item/add`, {
+    params: {
+      collectionId,
+      page,
+      size,
+    },
   });
 
+  return response.data;
+};
+
+export const addItemsToCollection = async (
+  collectibleItemIds: number[],
+  collectionId: number,
+) => {
+  const response = await api.post("/user-collectible", {
+    collectibleItemIds,
+    collectionId,
+  });
+  console.log(response.data);
   return response.data;
 };
