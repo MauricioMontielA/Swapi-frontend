@@ -2,6 +2,7 @@ import { getCollections } from '@/api/collectionService'
 import CollectionGridCard from '@/components/collections/CollectionGridCard'
 import CollectionsHeader from '@/components/collections/CollectionsHeader'
 import ExploreCatalogCard from '@/components/collections/ExploreCatalogCard'
+import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { Text, YStack } from 'tamagui'
@@ -55,7 +56,12 @@ export default function CollectionsScreen() {
               progress={collection.progress}
               missing={collection.missing}
               repeated={collection.repeated}
-              onPress={() => console.log(collection.name)}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/collections/[id]',
+                  params: { id: collection.id },
+                })
+              }
             />
           ))}
         </YStack>

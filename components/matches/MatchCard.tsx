@@ -5,9 +5,9 @@ import { Button, Card, Text, XStack, YStack } from 'tamagui'
 export type Match = {
   userId: number
   username: string
-  location: string
-  avatarUrl: string
-  matchPercentage: number
+  location?: string
+  avatarUrl?: string
+  matchPercentage?: number
   myOfferItemsCount: number
   theyOfferItemsCount: number
 }
@@ -37,10 +37,16 @@ export default function MatchCard({ match, onPress }: Props) {
               overflow="hidden"
               backgroundColor="#e5eeff"
             >
-              <Image
-                source={{ uri: match.avatarUrl }}
-                style={{ width: '100%', height: '100%' }}
-              />
+              {match.avatarUrl ? (
+                <Image
+                  source={{ uri: match.avatarUrl }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              ) : (
+                <YStack flex={1} alignItems="center" justifyContent="center">
+                  <Feather name="user" size={28} color="#565e74" />
+                </YStack>
+              )}
             </YStack>
 
             <YStack flex={1}>
@@ -48,17 +54,17 @@ export default function MatchCard({ match, onPress }: Props) {
                 {match.username}
               </Text>
 
-              <XStack alignItems="center" gap="$1">
+              {match.location ? <XStack alignItems="center" gap="$1">
                 <Feather name="map-pin" size={13} color="#464555" />
 
                 <Text fontSize={12} fontWeight="700" color="#464555">
                   {match.location}
                 </Text>
-              </XStack>
+              </XStack> : null}
             </YStack>
           </XStack>
 
-          <XStack
+          {typeof match.matchPercentage === 'number' ? <XStack
             backgroundColor="#e2dfff"
             paddingHorizontal="$3"
             paddingVertical="$1"
@@ -67,7 +73,7 @@ export default function MatchCard({ match, onPress }: Props) {
             <Text fontSize={14} fontWeight="600" color="#3525cd">
               {match.matchPercentage}% Match
             </Text>
-          </XStack>
+          </XStack> : null}
         </XStack>
 
         <XStack gap="$3">

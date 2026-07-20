@@ -25,6 +25,21 @@ export default function AddLayout() {
           headerShown: true,
         }}
       />
+
+      <Stack.Screen
+        name="MatchesProposals"
+        options={{ title: 'Trade suggestions', headerShown: true }}
+      />
+
+      <Stack.Screen
+        name="MatchesDetails"
+        options={{ title: 'Trade details', headerShown: true }}
+      />
+
+      <Stack.Screen
+        name="no-matches"
+        options={{ title: 'Trade suggestions', headerShown: true }}
+      />
     </Stack>
   )
 }

@@ -4,7 +4,7 @@ import { YStack } from 'tamagui'
 import InviteMoreCard from '@/components/matches/InviteMoreCard'
 import MatchCard, { type Match } from '@/components/matches/MatchCard'
 import MatchesHero from '@/components/matches/MatchesHero'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 
 export type UserCollectibleMatch = {
   userId: number
@@ -14,19 +14,28 @@ export type UserCollectibleMatch = {
 }
 
 export type UserCollectibleMatchResponse = {
-  matchInfo: Match[]
+  matchInfo: UserCollectibleMatch[]
   myItemsToOffer: number[]
 }
 
 export default function TradesScreen() {
-  const { matchResponse } = useLocalSearchParams()
-  const data: UserCollectibleMatchResponse =
-    typeof matchResponse === 'string'
-      ? JSON.parse(matchResponse)
-      : {
-        matchInfo: [],
-        myItemsToOffer: [],
-      }
+  const { collectionId, matchResponse } = useLocalSearchParams<{
+    collectionId?: string
+    matchResponse?: string
+  }>()
+
+  let data: UserCollectibleMatchResponse = {
+    matchInfo: [],
+    myItemsToOffer: [],
+  }
+
+  if (typeof matchResponse === 'string') {
+    try {
+      data = JSON.parse(matchResponse)
+    } catch {
+      data = { matchInfo: [], myItemsToOffer: [] }
+    }
+  }
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
@@ -36,11 +45,21 @@ export default function TradesScreen() {
         <MatchesHero />
 
         <YStack gap="$4">
-          {data.matchInfo.map(match => (
+          {data.matchInfo.map((match: Match) => (
             <MatchCard
               key={match.userId}
               match={match}
-              onPress={() => console.log('View trade', match.userId)}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/add/MatchesDetails',
+                  params: {
+                    targetUserId: match.userId,
+                    username: match.username,
+                    collectionId,
+                    filteredIds: JSON.stringify(data.myItemsToOffer),
+                  },
+                } as any)
+              }
             />
           ))}
 

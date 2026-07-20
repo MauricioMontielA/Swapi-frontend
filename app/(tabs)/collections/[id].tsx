@@ -1,90 +1,72 @@
 import { Feather } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, FlatList } from 'react-native'
 import { Text, XStack, YStack } from 'tamagui'
 
+import { getCollectionStickers } from '@/api/collectionService'
 import AddStickerButton from '@/components/collection-detail/AddStickerButton'
 import CollectionProgressCard from '@/components/collection-detail/CollectionProgressCard'
 import CollectionSearchBar from '@/components/collection-detail/CollectionSearchBar'
 import StickerGrid, { Sticker } from '@/components/collection-detail/StickerGrid'
 
-const stickers: Sticker[] = [
-  {
-    id: 1,
-    number: 10,
-    owned: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=800',
-  },
-  {
-    id: 2,
-    number: 7,
-    owned: true,
-    duplicates: 2,
-    imageUrl:
-      'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=800',
-  },
-  {
-    id: 3,
-    number: 8,
-    owned: false,
-  },
-  {
-    id: 4,
-    number: 1,
-    owned: true,
-    imageUrl:
-      'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800',
-  },
-  {
-    id: 5,
-    number: 9,
-    owned: false,
-  },
-  {
-    id: 6,
-    number: 12,
-    owned: true,
-    duplicates: 1,
-    imageUrl:
-      'https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?q=80&w=800',
-  },
-  {
-    id: 7,
-    number: 13,
-    owned: false,
-  },
-  {
-    id: 8,
-    number: 14,
-    owned: false,
-  },
-  {
-    id: 9,
-    number: 15,
-    owned: false,
-  },
-  {
-    id: 10,
-    number: 16,
-    owned: false,
-  },
-  {
-    id: 11,
-    number: 17,
-    owned: false,
-  },
-  {
-    id: 12,
-    number: 18,
-    owned: false,
-  },
-]
+const PAGE_SIZE = 30
 
 export default function CollectionDetailScreen() {
   const { id } = useLocalSearchParams()
+  const collectionId = Number(id)
   const [search, setSearch] = useState('')
+  const [stickers, setStickers] = useState<Sticker[]>([])
+  const [page, setPage] = useState(0)
+  const [isLastPage, setIsLastPage] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const loadStickers = useCallback(async (pageToLoad: number) => {
+    if (!collectionId) return
+
+    try {
+      setLoading(true)
+      const data = await getCollectionStickers(
+        collectionId,
+        pageToLoad,
+        PAGE_SIZE,
+      )
+      const nextStickers: Sticker[] = data.content.map(sticker => ({
+        id: sticker.id,
+        number: sticker.number,
+        imageUrl: sticker.imageUrl,
+        owned: sticker.owned > 0,
+        duplicates: Math.max(0, sticker.owned - 1),
+      }))
+
+      setStickers(current => {
+        if (pageToLoad === 0) return nextStickers
+
+        const existingIds = new Set(current.map(sticker => sticker.id))
+        return [
+          ...current,
+          ...nextStickers.filter(sticker => !existingIds.has(sticker.id)),
+        ]
+      })
+      setPage(data.page.number)
+      setIsLastPage(data.page.number + 1 >= data.page.totalPages)
+    } catch (error) {
+      console.error('Error loading collection stickers', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [collectionId])
+
+  useEffect(() => {
+    setStickers([])
+    setPage(0)
+    setIsLastPage(false)
+    loadStickers(0)
+  }, [loadStickers])
+
+  const loadMore = () => {
+    if (!loading && !isLastPage) loadStickers(page + 1)
+  }
 
   const filteredStickers = stickers.filter(sticker =>
     String(sticker.number).includes(search.trim())
@@ -122,15 +104,17 @@ export default function CollectionDetailScreen() {
         <Feather name="more-vertical" size={22} color="#464555" />
       </XStack>
 
-      <ScrollView
+      <FlatList
+        data={[{ id: 'collection-content' }]}
+        keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
         contentContainerStyle={{
           padding: 16,
           paddingBottom: 120,
         }}
-      >
-        <YStack gap="$5">
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        renderItem={() => <YStack gap="$5">
           <CollectionProgressCard
             completion={68}
             collected={408}
@@ -151,8 +135,12 @@ export default function CollectionDetailScreen() {
             stickers={filteredStickers}
             onStickerPress={sticker => console.log(sticker)}
           />
-        </YStack>
-      </ScrollView>
+
+          {loading && (
+            <ActivityIndicator size="small" color="#3525cd" />
+          )}
+        </YStack>}
+      />
 
       <AddStickerButton
         onPress={() => console.log('Add Sticker', id)}

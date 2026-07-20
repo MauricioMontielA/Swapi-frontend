@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { FlatList } from 'react-native'
 import { YStack } from 'tamagui'
 
@@ -27,10 +27,14 @@ type ItemsPageResponse = {
 }
 
 export default function AddScreen() {
-  const { collectionId } = useLocalSearchParams()
+  const params = useLocalSearchParams<{
+    collectionId?: string
+    collectionName?: string
+    collectionDescription?: string
+  }>()
+  const collectionId = Number(params.collectionId)
 
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<'NEW' | 'DUPLICATE'>('NEW')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
 
   const [items, setItems] = useState<Item[]>([])
@@ -40,23 +44,14 @@ export default function AddScreen() {
 
   const size = 30
 
-  useEffect(() => {
-    setItems([])
-    setPage(0)
-    setIsLastPage(false)
-
-    loadItems(0)
-  }, [collectionId])
-
-  const loadItems = async (pageToLoad: number) => {
-    if (loading) return
-    if (isLastPage && pageToLoad !== 0) return
+  const loadItems = useCallback(async (pageToLoad: number) => {
+    if (!collectionId) return
 
     try {
       setLoading(true)
 
       const data: ItemsPageResponse = await getItemsAdd(
-        Number(collectionId),
+        collectionId,
         pageToLoad,
         size
       )
@@ -74,16 +69,26 @@ export default function AddScreen() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [collectionId])
+
+  useEffect(() => {
+    setItems([])
+    setPage(0)
+    setIsLastPage(false)
+    setSelectedIds([])
+
+    loadItems(0)
+  }, [loadItems])
 
   const goToProposedMatches = (data: UserCollectibleMatchResponse) => {
     const matchInfo = data.matchInfo ?? []
     const myItemsToOffer = data.myItemsToOffer ?? []
 
     if (matchInfo.length > 0) {
-      router.push({
+      router.replace({
         pathname: '/(tabs)/add/MatchesProposals',
         params: {
+          collectionId,
           matchResponse: JSON.stringify({
             matchInfo,
             myItemsToOffer,
@@ -91,8 +96,13 @@ export default function AddScreen() {
         },
       } as any)
     } else {
-      router.push({
+      router.replace({
         pathname: '/(tabs)/add/no-matches',
+        params: {
+          collectionId,
+          collectionName: params.collectionName,
+          collectionDescription: params.collectionDescription,
+        },
       } as any)
     }
   }
@@ -106,7 +116,7 @@ export default function AddScreen() {
 
       const data: UserCollectibleMatchResponse = await addItemsToCollection(
         selectedIds,
-        Number(collectionId)
+        collectionId
       )
 
       goToProposedMatches(data)
@@ -151,6 +161,8 @@ export default function AddScreen() {
         renderItem={() => (
           <YStack gap="$5">
             <CollectionHeader
+              collectionName={params.collectionName}
+              collectionDescription={params.collectionDescription}
               search={search}
               onChangeSearch={setSearch}
               onChangeCollection={() =>

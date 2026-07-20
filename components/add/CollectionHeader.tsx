@@ -2,12 +2,16 @@ import { Feather } from '@expo/vector-icons'
 import { Input, Text, XStack, YStack } from 'tamagui'
 
 type Props = {
+  collectionName?: string
+  collectionDescription?: string
   search: string
   onChangeSearch: (value: string) => void
   onChangeCollection?: () => void
 }
 
 export default function CollectionHeader({
+  collectionName,
+  collectionDescription,
   search,
   onChangeSearch,
   onChangeCollection,
@@ -29,11 +33,11 @@ export default function CollectionHeader({
 
           <YStack flex={1}>
             <Text fontSize={24} fontWeight="700" color="#0b1c30">
-              World Cup 2026
+              {collectionName || 'Collection'}
             </Text>
 
             <Text fontSize={14} color="#464555">
-              Panini Official Collection
+              {collectionDescription || 'Select the items you want to add'}
             </Text>
           </YStack>
 

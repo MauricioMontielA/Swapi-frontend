@@ -3,7 +3,7 @@ import { Image } from 'react-native'
 import { Card, Text, XStack, YStack } from 'tamagui'
 
 type Props = {
-  number: number
+  number: number | string
   imageUrl?: string
   owned: boolean
   duplicates?: number
@@ -22,11 +22,12 @@ export default function StickerCard({
   if (!owned) {
     return (
       <Card
+        width="100%"
         aspectRatio={3 / 4}
         borderRadius={12}
         backgroundColor="#e5eeff"
         borderWidth={2}
-        borderColor="#c7c4d8"
+        borderColor="rgba(199,196,216,0.45)"
         borderStyle="dashed"
         alignItems="center"
         justifyContent="center"
@@ -34,8 +35,7 @@ export default function StickerCard({
         onPress={onPress}
       >
         <YStack alignItems="center" gap="$1">
-          <Feather name="help-circle" size={28} color="#c7c4d8" />
-
+          <Feather name="help-circle" size={28} color="rgba(199,196,216,0.7)" />
           <Text fontSize={12} fontWeight="700" color="#777587">
             {formattedNumber}
           </Text>
@@ -46,57 +46,59 @@ export default function StickerCard({
 
   return (
     <Card
+      width="100%"
       aspectRatio={3 / 4}
       borderRadius={12}
       backgroundColor="#ffffff"
-      padding="$2"
+      padding={8}
       overflow="hidden"
       borderWidth={duplicates > 0 ? 2 : 1}
-      borderColor={duplicates > 0 ? '#3525cd' : '#e5eeff'}
+      borderColor={duplicates > 0 ? '#3525cd' : 'rgba(199,196,216,0.25)'}
       pressStyle={{ scale: 0.92 }}
       onPress={onPress}
     >
-      <YStack flex={1} position="relative">
-        <Image
-          source={{ uri: imageUrl }}
-          style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: 8,
-            resizeMode: 'cover',
-          }}
-        />
+      <Image
+        source={{ uri: imageUrl }}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: 8,
+          resizeMode: 'cover',
+        }}
+      />
 
-        {duplicates > 0 && (
-          <XStack
-            position="absolute"
-            top={4}
-            left={4}
-            backgroundColor="#3525cd"
-            paddingHorizontal="$2"
-            paddingVertical="$1"
-            borderRadius={999}
-          >
-            <Text color="#ffffff" fontSize={11} fontWeight="700">
-              +{duplicates}
-            </Text>
-          </XStack>
-        )}
-
+      {duplicates > 0 && (
         <XStack
           position="absolute"
-          bottom={4}
-          right={4}
-          backgroundColor="rgba(53,37,205,0.9)"
-          paddingHorizontal="$2"
-          paddingVertical="$1"
-          borderRadius={6}
+          top={8}
+          left={8}
+          minWidth={30}
+          height={22}
+          paddingHorizontal={8}
+          borderRadius={999}
+          backgroundColor="#3525cd"
+          alignItems="center"
+          justifyContent="center"
         >
-          <Text color="#ffffff" fontSize={10} fontWeight="700">
-            {formattedNumber}
+          <Text color="#ffffff" fontSize={11} fontWeight="700">
+            +{duplicates}
           </Text>
         </XStack>
-      </YStack>
+      )}
+
+      <XStack
+        position="absolute"
+        right={8}
+        bottom={8}
+        paddingHorizontal={6}
+        paddingVertical={3}
+        borderRadius={4}
+        backgroundColor="rgba(53,37,205,0.9)"
+      >
+        <Text color="#ffffff" fontSize={10} fontWeight="800">
+          {formattedNumber}
+        </Text>
+      </XStack>
     </Card>
   )
 }

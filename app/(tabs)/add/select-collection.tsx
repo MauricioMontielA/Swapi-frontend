@@ -60,21 +60,27 @@ export default function SelectCollectionScreen() {
         collection.name.toLowerCase().includes(search.trim().toLowerCase())
     )
 
-    const handleSelectCollection = (collectionId: number) => {
+    const handleSelectCollection = (collection: CollectionInProgress) => {
         router.push({
             pathname: '/(tabs)/add/items',
             params: {
-                collectionId: collectionId,
+                collectionId: collection.id,
+                collectionName: collection.name,
+                collectionDescription: collection.description,
             },
         } as any)
 
 
     }
 
-    const goToItems = (collectionId: number) => {
+    const goToItems = (collection: RecommendedCollection) => {
         router.push({
             pathname: '/(tabs)/add/items',
-            params: { collectionId },
+            params: {
+                collectionId: collection.id,
+                collectionName: collection.name,
+                collectionDescription: collection.description,
+            },
         } as any)
     }
 
@@ -136,7 +142,7 @@ export default function SelectCollectionScreen() {
                                 <SelectCollectionCard
                                     key={collection.id}
                                     collection={collection}
-                                    onPress={() => handleSelectCollection(collection.id)}
+                                    onPress={() => handleSelectCollection(collection)}
                                 />
                             ))}
 
@@ -153,7 +159,10 @@ export default function SelectCollectionScreen() {
                 collections={recommendedCollections}
                 onSelectCollection={(collectionId) => {
                     setNewCollectionOpen(false)
-                    goToItems(collectionId)
+                    const collection = recommendedCollections.find(
+                        item => item.id === collectionId
+                    )
+                    if (collection) goToItems(collection)
                 }}
             />
         </>

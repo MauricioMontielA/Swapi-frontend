@@ -1,10 +1,10 @@
-import { Dimensions } from 'react-native'
+import { useWindowDimensions } from 'react-native'
 import { XStack } from 'tamagui'
 import StickerCard from './StickerCard'
 
 export type Sticker = {
   id: number
-  number: number
+  number: number | string
   imageUrl?: string
   owned: boolean
   duplicates?: number
@@ -15,18 +15,20 @@ type Props = {
   onStickerPress?: (sticker: Sticker) => void
 }
 
-const screenWidth = Dimensions.get('window').width
 const horizontalPadding = 32
 const gap = 12
 const columns = 3
-const cardWidth = (screenWidth - horizontalPadding - gap * (columns - 1)) / columns
 
 export default function StickerGrid({
   stickers,
   onStickerPress,
 }: Props) {
+  const { width: screenWidth } = useWindowDimensions()
+  const cardWidth =
+    (screenWidth - horizontalPadding - gap * (columns - 1)) / columns
+
   return (
-    <XStack flexWrap="wrap" gap="$3">
+    <XStack flexWrap="wrap" gap={gap}>
       {stickers.map(sticker => (
         <XStack key={sticker.id} width={cardWidth}>
           <StickerCard

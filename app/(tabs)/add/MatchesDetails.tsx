@@ -1,79 +1,213 @@
-import { router } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
-import { YStack } from 'tamagui'
+import { router, useLocalSearchParams } from 'expo-router'
+import { isAxiosError } from 'axios'
+import { useEffect, useMemo, useState } from 'react'
+import { Alert, ScrollView } from 'react-native'
+import { Card, Spinner, Text, YStack } from 'tamagui'
 
+import {
+  createTrade,
+  getCurrentUserProfile,
+  getTradeProposalItems,
+  type CurrentUserProfile,
+  type TradeCandidateItem,
+} from '@/api/collectionService'
 import TradeFooter from '@/components/trade-builder/TradeFooter'
 import { type TradeItem } from '@/components/trade-builder/TradeItemCard'
 import TradeItemSection from '@/components/trade-builder/TradeItemSection'
-import TraderProfileCard from '@/components/trade-builder/TraderProfileCard'
 
-const wantItems: TradeItem[] = [
-  {
-    id: 1,
-    name: 'Mech-Warrior Prime',
-    subtitle: 'Rare Holographic',
-    imageUrl: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?q=80&w=800',
-  },
-  {
-    id: 2,
-    name: 'The Eye of Aras',
-    subtitle: 'Legendary Coin',
-    imageUrl: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?q=80&w=800',
-  },
-  {
-    id: 3,
-    name: 'Street Cat Kid',
-    subtitle: 'Art Series',
-    imageUrl: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?q=80&w=800',
-  },
-  {
-    id: 4,
-    name: 'Crystal Wyvern',
-    subtitle: 'First Edition',
-    imageUrl: 'https://images.unsplash.com/photo-1618945524163-32451704cbb8?q=80&w=800',
-  },
-]
+type CandidateItems = {
+  desiredItems: TradeCandidateItem[]
+  offeredItems: TradeCandidateItem[]
+}
 
-const offerItems: TradeItem[] = [
-  {
-    id: 101,
-    name: 'Hyper-Kicks 2.0',
-    subtitle: 'Rare Accessory',
-    badge: 'Wishlist Item',
-    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800',
-  },
-  {
-    id: 102,
-    name: 'Retro Adventure X',
-    subtitle: 'Vintage Game',
-    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800',
-  },
-  {
-    id: 103,
-    name: 'Neon Sage #88',
-    subtitle: 'Cyber Edition',
-    imageUrl: 'https://images.unsplash.com/photo-1601814933824-fd0b574dd592?q=80&w=800',
-  },
-]
+const emptyCandidates: CandidateItems = {
+  desiredItems: [],
+  offeredItems: [],
+}
 
-export default function TradeBuilderScreen() {
-  const [selectedWantIds, setSelectedWantIds] = useState<number[]>([])
-  const [selectedOfferIds, setSelectedOfferIds] = useState<number[]>([])
+const toTradeItem = (item: TradeCandidateItem): TradeItem => ({
+  id: item.userCollectibleId,
+  name: item.collectibleItemName,
+  subtitle: `#${item.collectibleItemNumber}`,
+  imageUrl: item.collectibleItemImageUrl,
+})
 
-  const toggleWant = (id: number) => {
-    setSelectedWantIds(current =>
-      current.includes(id)
-        ? current.filter(itemId => itemId !== id)
-        : [...current, id]
-    )
+const logRequestError = (label: string, error: unknown, startedAt: number) => {
+  if (isAxiosError(error)) {
+    console.error(`[add-flow] ${label} failed`, {
+      durationMs: Date.now() - startedAt,
+      message: error.message,
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      status: error.response?.status,
+      response: error.response?.data,
+    })
+    return
   }
 
-  const toggleOffer = (id: number) => {
-    setSelectedOfferIds(current =>
-      current.includes(id)
-        ? current.filter(itemId => itemId !== id)
-        : [...current, id]
+  console.error(`[add-flow] ${label} failed`, {
+    durationMs: Date.now() - startedAt,
+    error,
+  })
+}
+
+export default function TradeBuilderScreen() {
+  const params = useLocalSearchParams<{
+    targetUserId?: string
+    username?: string
+    collectionId?: string
+    filteredIds?: string
+  }>()
+  const targetUserId = Number(params.targetUserId)
+  const collectionId = Number(params.collectionId)
+
+  const [candidates, setCandidates] = useState<CandidateItems>(emptyCandidates)
+  const [currentUser, setCurrentUser] = useState<CurrentUserProfile | null>(null)
+  const [selectedWantIds, setSelectedWantIds] = useState<number[]>([])
+  const [selectedOfferIds, setSelectedOfferIds] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const loadProposal = async () => {
+      if (!targetUserId || !collectionId) {
+        Alert.alert('Unable to open trade', 'The trade information is incomplete.')
+        router.back()
+        return
+      }
+
+      let filteredIds: number[] = []
+      try {
+        filteredIds = JSON.parse(params.filteredIds || '[]')
+      } catch {
+        filteredIds = []
+      }
+
+      try {
+        setLoading(true)
+        const proposalRequest = { targetUserId, collectionId, filteredIds }
+        console.log('[add-flow] Loading trade detail', proposalRequest)
+
+        const proposalStartedAt = Date.now()
+        const proposalPromise = getTradeProposalItems(proposalRequest)
+          .then(proposal => {
+            console.log('[add-flow] POST /trade/proposal-items succeeded', {
+              durationMs: Date.now() - proposalStartedAt,
+              desiredItems: proposal.desiredItems?.length ?? 0,
+              offeredItems: proposal.offeredItems?.length ?? 0,
+            })
+            return proposal
+          })
+          .catch(error => {
+            logRequestError('POST /trade/proposal-items', error, proposalStartedAt)
+            throw error
+          })
+
+        const profileStartedAt = Date.now()
+        const profilePromise = getCurrentUserProfile()
+          .then(profile => {
+            console.log('[add-flow] GET /user/profile/me succeeded', {
+              durationMs: Date.now() - profileStartedAt,
+              userId: profile.id,
+            })
+            return profile
+          })
+          .catch(error => {
+            logRequestError('GET /user/profile/me', error, profileStartedAt)
+            throw error
+          })
+
+        const [proposal, profile] = await Promise.all([
+          proposalPromise,
+          profilePromise,
+        ])
+        setCandidates({
+          desiredItems: proposal.desiredItems ?? [],
+          offeredItems: proposal.offeredItems ?? [],
+        })
+        setCurrentUser(profile)
+      } catch (error) {
+        const detail = isAxiosError(error)
+          ? `HTTP ${error.response?.status ?? 'network/timeout'}: ${
+              typeof error.response?.data === 'string'
+                ? error.response.data
+                : error.message
+            }`
+          : 'Unexpected error'
+        Alert.alert('Unable to load proposal', detail)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProposal()
+  }, [collectionId, params.filteredIds, targetUserId])
+
+  const wantItems = useMemo(
+    () => candidates.desiredItems.map(toTradeItem),
+    [candidates.desiredItems],
+  )
+  const offerItems = useMemo(
+    () => candidates.offeredItems.map(toTradeItem),
+    [candidates.offeredItems],
+  )
+
+  const toggle = (
+    id: number,
+    setter: React.Dispatch<React.SetStateAction<number[]>>,
+  ) => setter(current =>
+    current.includes(id)
+      ? current.filter(itemId => itemId !== id)
+      : [...current, id],
+  )
+
+  const sendProposal = async () => {
+    if (!currentUser || submitting) return
+
+    const itemsToTrade = [
+      ...selectedWantIds.map(userCollectible => ({
+        fromUser: targetUserId,
+        toUser: currentUser.id,
+        userCollectible,
+        quantity: 1,
+      })),
+      ...selectedOfferIds.map(userCollectible => ({
+        fromUser: currentUser.id,
+        toUser: targetUserId,
+        userCollectible,
+        quantity: 1,
+      })),
+    ]
+
+    const startedAt = Date.now()
+    try {
+      setSubmitting(true)
+      console.log('[add-flow] Creating trade', {
+        targetUserId,
+        selectedWantIds,
+        selectedOfferIds,
+        itemsToTrade,
+      })
+      await createTrade(itemsToTrade)
+      console.log('[add-flow] POST /trade succeeded', {
+        durationMs: Date.now() - startedAt,
+      })
+      Alert.alert('Proposal sent', 'Your trade proposal was created successfully.')
+      router.replace('/(tabs)/trades' as any)
+    } catch (error) {
+      logRequestError('POST /trade', error, startedAt)
+      Alert.alert('Unable to send proposal', 'Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <YStack flex={1} alignItems="center" justifyContent="center" gap="$3">
+        <Spinner size="large" color="#3525cd" />
+        <Text>Loading trade options...</Text>
+      </YStack>
     )
   }
 
@@ -81,40 +215,35 @@ export default function TradeBuilderScreen() {
     <YStack flex={1} backgroundColor="#f8f9ff">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 150,
-        }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 150 }}
       >
         <YStack gap="$6">
-          <TraderProfileCard
-            name='Alex "The Collector" Rivera'
-            avatarUrl="https://i.pravatar.cc/200?img=12"
-            successfulTrades={142}
-            rating={4.9}
-            compatibility={94}
-          />
+          <Card backgroundColor="#ffffff" borderRadius={16} padding="$5">
+            <Text fontSize={14} color="#565e74">Trade with</Text>
+            <Text fontSize={24} fontWeight="700" color="#0b1c30">
+              {params.username || 'Collector'}
+            </Text>
+          </Card>
 
           <TradeItemSection
             title="What you want"
-            subtitle="42 duplicates found"
+            subtitle={`${wantItems.length} available`}
             icon="shopping-bag"
             iconBackground="#ffdad6"
             iconColor="#ba1a1a"
             items={wantItems}
             selectedIds={selectedWantIds}
-            onToggle={toggleWant}
+            onToggle={id => toggle(id, setSelectedWantIds)}
           />
 
           <TradeItemSection
             title="What you offer"
-            rightAction="Filter by his Wishlist"
             icon="archive"
             iconBackground="#dae2fd"
             iconColor="#3525cd"
             items={offerItems}
             selectedIds={selectedOfferIds}
-            onToggle={toggleOffer}
+            onToggle={id => toggle(id, setSelectedOfferIds)}
           />
         </YStack>
       </ScrollView>
@@ -123,12 +252,7 @@ export default function TradeBuilderScreen() {
         wantCount={selectedWantIds.length}
         offerCount={selectedOfferIds.length}
         onCancel={() => router.back()}
-        onSend={() =>
-          console.log('Send proposal', {
-            wanted: selectedWantIds,
-            offered: selectedOfferIds,
-          })
-        }
+        onSend={sendProposal}
       />
     </YStack>
   )
